@@ -2,10 +2,16 @@ import Customer from "../../../../domain/customer/entity/customer";
 import Address from "../../../../domain/customer/value-object/address";
 import CustomerRepositoryInterface from "../../../../domain/customer/repository/customer-repository.interface";
 import CustomerModel from "./customer.model";
+import CustomerCreatedEvent from "../../../../domain/customer/event/customer-created.event";
+import EventDispatcher from "../../../../domain/@shared/event/event-dispatcher";
+import LogWhenCustomerAddressIsChanged from "../../../../domain/customer/event/handler/log-when-customer-address-is-changed.handler";
+import LogWhenCustomerIsCreated from "../../../../domain/customer/event/handler/log-when-customer-is-created.handler";
+import Log2WhenCustomerIsCreated from "../../../../domain/customer/event/handler/log2-when-customer-is-created.handler copy";
+import CustomerAddressChangedEvent from "../../../../domain/customer/event/customer-address-changed.event";
 
 export default class CustomerRepository implements CustomerRepositoryInterface {
   async create(entity: Customer): Promise<void> {
-    await CustomerModel.create({
+    const customer = await CustomerModel.create({
       id: entity.id,
       name: entity.name,
       street: entity.Address.street,
@@ -15,6 +21,15 @@ export default class CustomerRepository implements CustomerRepositoryInterface {
       active: entity.isActive(),
       rewardPoints: entity.rewardPoints,
     });
+
+    const eventDispatcher = new EventDispatcher();
+    const eventHandler = new LogWhenCustomerIsCreated();
+    const eventHandler2 = new Log2WhenCustomerIsCreated();
+
+    eventDispatcher.register("ProductCreatedEvent", eventHandler);
+    eventDispatcher.register("ProductCreatedEvent", eventHandler2);
+
+    eventDispatcher.notify(new CustomerCreatedEvent(customer))
   }
 
   async update(entity: Customer): Promise<void> {

@@ -1,3 +1,6 @@
+import EventDispatcher from "../../@shared/event/event-dispatcher";
+import CustomerAddressChangedEvent from "../event/customer-address-changed.event";
+import LogWhenCustomerAddressIsChanged from "../event/handler/log-when-customer-address-is-changed.handler";
 import Address from "../value-object/address";
 
 export default class Customer {

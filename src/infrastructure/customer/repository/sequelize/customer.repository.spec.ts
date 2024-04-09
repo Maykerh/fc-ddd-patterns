@@ -3,6 +3,10 @@ import Customer from "../../../../domain/customer/entity/customer";
 import Address from "../../../../domain/customer/value-object/address";
 import CustomerModel from "./customer.model";
 import CustomerRepository from "./customer.repository";
+import LogWhenCustomerIsCreated from "../../../../domain/customer/event/handler/log-when-customer-is-created.handler";
+import Log2WhenCustomerIsCreated from "../../../../domain/customer/event/handler/log2-when-customer-is-created.handler copy";
+import EventDispatcher from "../../../../domain/@shared/event/event-dispatcher";
+import CustomerCreatedEvent from "../../../../domain/customer/event/customer-created.event";
 
 describe("Customer repository test", () => {
   let sequelize: Sequelize;
@@ -108,5 +112,34 @@ describe("Customer repository test", () => {
     expect(customers).toHaveLength(2);
     expect(customers).toContainEqual(customer1);
     expect(customers).toContainEqual(customer2);
+  });
+
+  it('should call eventHandler.handle()', async () => {
+    const address = new Address("Street 2", 2, "Zipcode 2", "City 2");
+
+    const eventHandler1 = new LogWhenCustomerIsCreated();
+    const eventHandler2 = new Log2WhenCustomerIsCreated();
+    const handleSpy1 = jest.spyOn(eventHandler1, 'handle');
+    const handleSpy2 = jest.spyOn(eventHandler2, 'handle');
+
+    const eventDispatcher = new EventDispatcher();
+    eventDispatcher.register('CustomerCreatedEvent', eventHandler1);
+    eventDispatcher.register('CustomerCreatedEvent', eventHandler2);
+
+    expect(
+      eventDispatcher.getEventHandlers["CustomerCreatedEvent"][0]
+    ).toMatchObject(eventHandler1);
+    expect(
+      eventDispatcher.getEventHandlers["CustomerCreatedEvent"][1]
+    ).toMatchObject(eventHandler2);
+
+    const customer = new Customer("123", "Customer 1");
+
+    customer.Address = address;
+
+    eventDispatcher.notify(new CustomerCreatedEvent(customer));
+
+    expect(handleSpy1).toHaveBeenCalled();
+    expect(handleSpy2).toHaveBeenCalled();
   });
 });
