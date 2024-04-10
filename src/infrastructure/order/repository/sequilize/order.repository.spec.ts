@@ -94,31 +94,47 @@ describe("Order repository test", () => {
     customer2.changeAddress(address2);
     await customerRepository.create(customer2);
     
-
     const productRepository = new ProductRepository();
+
     const product = new Product("111", "Product 1", 10);
     await productRepository.create(product);
 
-    const orderItem = new OrderItem(
-      "111",
-      product.name,
-      product.price,
-      product.id,
-      2
-    );
+    const product2 = new Product("222", "Product 2", 15);
+    await productRepository.create(product2);
 
+    const orderItem = new OrderItem("1", product.name, product.price, product.id, 2);
     const order = new Order("222", "123", [orderItem]);
 
     const orderRepository = new OrderRepository();
     await orderRepository.create(order);
 
-    const newOrder = new Order("222", "456", [orderItem]);
+    const newOrderItem = new OrderItem("2", product2.name, product2.price, product2.id, 2)
+    const newOrder = new Order("222", "456", [orderItem, newOrderItem]);
 
     await orderRepository.update(newOrder);
 
-    const updatedOrder = await OrderModel.findByPk("222");
+    const updatedOrder = await OrderModel.findByPk("222", {
+      include: [
+        { 
+          model: OrderItemModel,
+          as: 'items'
+        }
+      ]
+    });
 
-    expect(updatedOrder.customer_id).toBe("456");
+    expect(updatedOrder.total).toBe(50);
+
+    expect(updatedOrder.items[0].id).toBe("1");
+    expect(updatedOrder.items[0].name).toBe("Product 1");
+    expect(updatedOrder.items[0].price).toBe(10);
+    expect(updatedOrder.items[0].quantity).toBe(2);
+    expect(updatedOrder.items[0].product_id).toBe("111");
+
+    expect(updatedOrder.items[1].id).toBe("2");
+    expect(updatedOrder.items[1].name).toBe("Product 2");
+    expect(updatedOrder.items[1].price).toBe(15);
+    expect(updatedOrder.items[1].quantity).toBe(2);
+    expect(updatedOrder.items[1].product_id).toBe("222");
   });
 
   it("should find an existing order", async () => {
